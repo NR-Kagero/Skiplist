@@ -1,0 +1,378 @@
+#include <iostream>
+#include <cmath>
+#include <ctime>
+
+using namespace std;
+
+struct Node
+{
+    int info;
+    int levels=0;
+    Node *next=NULL;
+    Node *up=NULL;
+    Node *down=NULL;
+    bool newNode=true;
+    void PrintNode()
+    {
+        cout<<"info = "<<info<<" levels count ="<<levels<<"   "<<newNode<<endl;
+    }
+};
+
+class SkipList
+{
+private:
+    Node *First;
+    Node *Last;
+    bool k,l;
+    int length,levelLimit;
+public:
+    SkipList()
+    {
+        First=new Node;
+        Last=NULL;
+        length=0;
+        levelLimit=0;
+        l=k=false;
+    }
+    void insertInOrder(int data)
+    {
+        if(findNode(data)!=-1)
+        {
+            cout<<"Node already exists\n";
+            return;
+        };
+        bool flag=0;
+        firstLevel(First);
+        if(length==0)
+        {
+            Node*node;
+            node=new Node;
+            node->info=data;
+            First->next=node;
+            node->next=Last;
+            length++;
+            return;
+        }
+        if(First->next->info>data&&First->down==NULL)
+        {
+            Node *node;
+            node=new Node;
+            node->info=data;
+            node->next=First->next;
+            First->next=node;
+            length++;
+            return;
+        }
+        lastLevel(First);
+        Node*dum,*pre;
+        if(l==true)
+        {
+            First=First->down;
+        }
+        dum=First->next;
+        pre=First;
+        while(pre!=NULL&&dum->next!=NULL)
+        {
+            if(dum->info>data&&pre==First)
+            {
+                pre=pre->down;
+                dum=pre->next;
+            }
+            else if(dum->next->info>data&&pre==First)
+            {
+                pre=pre->down;
+                dum=pre->next;
+            }
+            else if(dum->next->info>=data&&dum->info<data&&pre!=First)
+            {
+                if(dum->down!=NULL)
+                {
+                    dum=dum->down;
+                    flag=1;
+                }
+                if(dum->next->info>=data&&dum->info<data&&dum->down==NULL)
+                {
+                    Node *node;
+                    node=new Node;
+                    node->info=data;
+                    node->next=dum->next;
+                    dum->next=node;
+                    length++;
+                    return;
+                }
+            }
+            pre=dum;
+            dum=dum->next;
+            if(flag==1)
+            {
+                dum=pre;
+            }
+            flag=0;
+
+        }
+        if(pre->down!=NULL)
+        {
+            pre=First->down;
+            dum=pre->next;
+        }
+        while(true&&l==true)
+        {
+            if(dum->next->info>data)
+            {
+                if(dum->down==NULL)
+                {
+                    Node *node;
+                    node=new Node;
+                    node->info=data;
+                    node->next=dum->next;
+                    dum->next=node;
+                    length++;
+                    return;
+                }
+                else
+                {
+                    pre=pre->down;
+                    dum=pre->next;
+                }
+            }
+            else
+            {
+                pre=dum;
+                dum=dum->next;
+            }
+        }
+        Node *node;
+        node=new Node;
+        node->info=data;
+        node->next=dum->next;
+        dum->next=node;
+        length++;
+    }
+    int findNode(int data)
+    {
+        if(length==0)
+        {
+            cout<<"No nodes yest\n";
+            return -1;
+        }
+        int index=0,layer=1;
+        Node*dum,*pre;
+        lastLevel(First);
+        dum=First->next;
+        pre=First;
+        while(pre!=NULL)
+        {
+            if(dum->info==data)
+            {
+                cout<<"found in level "<<(levelLimit-layer+1)<<endl;
+                return index;
+            }
+            else if(dum->next==Last||dum->next->info>data)
+            {
+                if(pre->down==NULL)
+                {
+                    break;
+                }
+                pre=pre->down;
+                dum=pre->next;
+                layer++;
+            }
+            else if(dum->info<data)
+            {
+                pre=dum;
+                dum=dum->next;
+                index++;
+            }
+        }
+        return -1;
+    }
+    bool deleteNode(int data)
+    {
+        Node*dum,*pre,*dele;
+        lastLevel(First);
+        dum=First->next;
+        pre=First;
+        while(pre!=NULL)
+        {
+            if(dum->info==data)
+            {
+                while(dum!= NULL)
+                {
+                    pre->next=dum->next;
+                    if(dum->down==NULL)
+                    {
+                        break;
+                    }
+                    pre=pre->down;
+                    dum=dum->down;
+                    dele=dum->up;
+                    delete dele;
+                    while(pre->next!=dum&&pre!=NULL)
+                    {
+                        pre = pre->next;
+                    }
+                }
+                length--;
+                return true;
+            }
+            else if(dum->next==Last||dum->next->info>data)
+            {
+                pre=pre->down;
+                dum=pre->next;
+            }
+            else if(dum->info<data)
+            {
+                pre=dum;
+                dum=dum->next;
+            }
+        }
+    }
+    void levelGenerate()
+    {
+        Node *dum,*dump,*previous,*node;
+        int oldLevelLimit=levelLimit;
+        firstLevel(First);
+        srand(time(0));
+        updateLevelLimit();
+        for(int i=0; i<levelLimit+1; i++)
+        {
+            if(oldLevelLimit<=0)
+            {
+                dump=new Node;
+                First->up=dump;
+                dump->levels=First->levels+1;
+                dump->down=First;
+            }
+            previous=First->up;
+            dum=First->next;
+            while(dum!=Last)
+            {
+                if(i==dum->levels)
+                {
+                    if(rand()%(levelLimit+1-i)>0)
+                    {
+                        node=new Node;
+                        node->info=dum->info;
+                        node->levels=dum->levels+1;
+                        dum->up=node;
+                        node->next=Last;
+                        node->down=dum;
+                        previous->next=node;
+                        previous=previous->next;
+                    }
+                }
+
+                dum=dum->next;
+            }
+            First=First->up;
+            oldLevelLimit--;
+        }
+        First=First->down;
+        l=true;
+    }
+    void updateLevelLimit()
+    {
+        levelLimit=int(log2(length))+1;
+    }
+    int getLength()
+    {
+        return length;
+    }
+    int getLayer()
+    {
+        return levelLimit;
+    }
+    Node *getLast()
+    {
+        return Last;
+    }
+    Node *getFirst()
+    {
+        return First;
+    }
+    void lastLevel(Node *point)
+    {
+        while(point->up!=NULL)
+        {
+            point=point->up;
+        }
+        if(point->up==NULL&&point->down!=NULL)
+        {
+            First=point->down;
+            return;
+        }
+        First=point;
+    }
+    void firstLevel(Node *point)
+    {
+        while(point->down!=NULL)
+        {
+            point=point->down;
+        }
+
+        First=point;
+    }
+    void printLayer(int layer){
+        if(layer>levelLimit){
+            cout<<"level does not exists \n";
+            return;
+        }
+        firstLevel(First);
+        for(int i=0;i<layer;i++){
+            First=First->up;
+        }
+        Node*dum;
+        dum=First->next;
+        while(dum!=Last){
+            dum->PrintNode();
+            dum=dum->next;
+        }
+    }
+    void printList()
+    {
+        lastLevel(First);
+        Node *dum,*du;
+        du=First;
+        while(du!=NULL)
+        {
+            cout<<"new level"<<endl;
+            dum=du->next;
+            while(dum!=Last)
+            {
+                dum->PrintNode();
+                dum=dum->next;
+            }
+            du=du->down;
+        }
+
+    }
+};
+
+int main()
+{
+    SkipList skipy;
+    skipy.insertInOrder(65);
+    skipy.insertInOrder(250);
+    skipy.insertInOrder(251);
+    skipy.insertInOrder(252);
+    skipy.insertInOrder(25);
+    skipy.insertInOrder(261);
+    skipy.insertInOrder(252);
+    skipy.insertInOrder(90);
+    skipy.insertInOrder(252);
+    skipy.insertInOrder(100);
+    skipy.insertInOrder(13);
+    skipy.insertInOrder(2);
+    skipy.levelGenerate();
+    skipy.insertInOrder(80);
+    skipy.insertInOrder(70);
+    skipy.insertInOrder(80);
+    skipy.insertInOrder(60);
+    skipy.insertInOrder(80);
+    skipy.insertInOrder(140);
+    skipy.insertInOrder(120);
+    skipy.levelGenerate();
+    skipy.printList();
+    skipy.printLayer(5);
+    return 0;
+}
